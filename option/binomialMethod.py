@@ -6,44 +6,48 @@ class ParameterNotSetError(Exception):
 	def __str__(self):
 		return repr(self.value)
 
+
 def payoffFunc(s,k):
 	return 0 if s < k else s - k
 
-def binomialMethod(assetPrice = None, strike = None, expired = None, vol = None, noSteps = 10, interest = 0):
+def binomialMethod(underlyingAsset):
 	'''
 	Author: Cheng Yan
 	This is binomial method to price option
 
 	parameters: 
-	under asset price, interest rate, strike price, expired days, number of steps
+	self,strik = None,expiredDays = None, price = None,volatility = None , noSteps = 10
 
-	default sitting:
-	steps is 10, interest rate is 0
 	'''
-	if not (assetPrice and strike and expired and vol):
-		# need to add more detail, raise name of missing value 
-		raise ParameterNotSetError('missing value')
-		sys.exit(1)
+	# need to add more detail, raise name of missing value 
+	for var in vars(underlyingAsset):
+		varLst, exitFlag = [], False
+		print(var,vars(underlyingAsset)[var])
+		if vars(underlyingAsset)[var] == None:
+			varLst.append(var)
+			exitFlag =True
+		if exitFlag:
+			raise ParameterNotSetError("The parameter(s) {} can not be empty".format((varLst)))
+			sys.exit(1)
 
-	priceLst = [0] * noSteps 	
-	timeStep = expired / float(noSteps)
+	priceLst = [0] * underlyingAsset.noSteps 	
+	timeStep = underlyingAsset.expiredDays / float(underlyingAsset.noSteps)
 	
-	discountFactor = math.exp(-interest * timeStep)
-    	temp = 0.5 * (discountFactor + math.exp((interest + vol ** 2) * timeStep) )
+	discountFactor = math.exp(-underlyingAsset.interest * timeStep)
+	temp = 0.5 * (discountFactor + math.exp((underlyingAsset.interest + underlyingAsset.volatility ** 2) * timeStep))
 
 	up = temp + math.sqrt(temp ** 2 - 1)
 	down = 1.0 / up
-	p = math.exp((interest * timeStep) - down) / (up - down)
-	print(p,up,down)
-	priceLst[0] = assetPrice
-	for i in range(1,noSteps):
+	p = math.exp((underlyingAsset.interest * timeStep) - down) / (up - down)
+	priceLst[0] = underlyingAsset.price
+	for i in range(1,underlyingAsset.noSteps):
 		for j in range(i,0,-1):
 			priceLst[j] = up * priceLst[j-1]
 		priceLst[0] = down * priceLst[0]
 
-	optionLst =  [ payoffFunc(priceLst[i],strike) for i in range(noSteps)]
+	optionLst =  [ payoffFunc(priceLst[i],underlyingAsset.strike) for i in range(underlyingAsset.noSteps)]
 
-	for i in range(noSteps,1,-1):
+	for i in range(underlyingAsset.noSteps,1,-1):
 		for j in range(i - 1):
 			optionLst[j] = (p * optionLst[j+1] +(1 - p) * optionLst[j]) * discountFactor
 
